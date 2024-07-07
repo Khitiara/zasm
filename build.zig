@@ -23,6 +23,20 @@ pub fn build(b: *Build) !void {
         .optimize = optimize,
     });
     zasm_exe.root_module.addImport("zigwin32", zigwin32.module("zigwin32"));
+
+    const cases = b.addTest(.{
+        .root_source_file = b.path("src/cases.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    zasm_exe.root_module.addImport("zigwin32", zigwin32.module("zigwin32"));
     const test_step = b.step("test", "Run tests.");
     test_step.dependOn(&b.addRunArtifact(tests).step);
+    const run_cases = b.addRunArtifact(cases);
+    run_cases.setCwd(b.path("src"));
+    test_step.dependOn(&run_cases.step);
+
+    const no_emit_step = b.step("build_no_emit", "build without emitting binary");
+    no_emit_step.dependOn(&zasm_exe.step);
+    no_emit_step.dependOn(&cases.step);
 }
