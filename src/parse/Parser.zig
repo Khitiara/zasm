@@ -271,10 +271,11 @@ fn addExtra(p: *Parser, extra: anytype) Allocator.Error!Node.Index {
 }
 
 fn listToSpan(p: *Parser, list: []const u32) !Node.SubRange {
+    const start = p.extra_data.items.len;
     try p.extra_data.appendSlice(p.gpa, list);
     return Node.SubRange{
-        .start = @as(Node.Index, @intCast(p.extra_data.items.len - list.len)),
-        .end = @as(Node.Index, @intCast(p.extra_data.items.len)),
+        .start = start,
+        .end = p.extra_data.items.len,
     };
 }
 
@@ -614,28 +615,16 @@ fn parseDataExpr(p: *Parser) Error!u32 {
     defer p.scratch.shrinkRetainingCapacity(scratch_top);
 
     const keyword = p.nextToken();
-    if (p.eatToken(.newline) == null) {
-        while (true) {
-            const item = p.expectExpr();
-            try p.scratch.append(p.gpa, item);
-            if (p.eatToken(.comma) == null) {
-                _ = try p.expectToken(.newline);
-                break;
-            }
+    while (true) {
+        const item = p.expectExpr();
+        try p.scratch.append(p.gpa, item);
+        if (p.eatToken(.comma) == null) {
+            _ = try p.expectToken(.newline);
+            break;
         }
     }
     const items = p.scratch.items[scratch_top..];
     switch (items.len) {
-        0 => {
-            return p.addNode(.{
-                .tag = .data_two,
-                .main_token = keyword,
-                .data = .{
-                    .lhs = 0,
-                    .rhs = 0,
-                },
-            });
-        },
         1 => {
             return p.addNode(.{
                 .tag = .data_two,

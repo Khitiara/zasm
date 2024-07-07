@@ -1,7 +1,8 @@
 const std = @import("std");
 const Tokenizer = @import("Tokenizer.zig");
-const Token = Tokenizer.Token;
+pub const Token = Tokenizer.Token;
 const Ast = @This();
+const assert = std.debug.assert;
 
 source: [:0]const u8,
 
@@ -29,6 +30,16 @@ pub const Span = struct {
     end: usize,
     main: usize,
 };
+
+pub fn extraData(tree: Ast, index: usize, comptime T: type) T {
+    const fields = std.meta.fields(T);
+    var result: T = undefined;
+    inline for (fields, 0..) |field, i| {
+        comptime assert(field.type == Node.Index);
+        @field(result, field.name) = tree.extra_data[index + i];
+    }
+    return result;
+}
 
 pub fn tokenLocation(self: Ast, start_offset: usize, token_index: u32) Location {
     var loc = Location{
